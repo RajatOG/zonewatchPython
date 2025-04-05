@@ -158,10 +158,18 @@ def detect_frame():
         _, buffer = cv2.imencode('.jpg', result_frame)
         result_base64 = base64.b64encode(buffer).decode('utf-8')
         
+        # Ensure all values are JSON serializable (convert any numpy types to native Python types)
+        serializable_detections = []
+        for detection in detections:
+            serializable_detections.append({
+                'box': [int(b) for b in detection['box']],
+                'confidence': float(detection['confidence'])
+            })
+        
         return jsonify({
             'success': True,
             'result_frame': f"data:image/jpeg;base64,{result_base64}",
-            'detections': detections
+            'detections': serializable_detections
         })
     
     except Exception as e:

@@ -35,11 +35,11 @@ def get_video_info(video_path):
         cap.release()
         
         return {
-            'width': width,
-            'height': height,
-            'fps': fps,
-            'frame_count': frame_count,
-            'duration': duration
+            'width': int(width),
+            'height': int(height),
+            'fps': float(fps),
+            'frame_count': int(frame_count),
+            'duration': float(duration)
         }
     except Exception as e:
         logger.error(f"Error getting video info: {str(e)}")
@@ -205,12 +205,12 @@ def process_video(video_path, output_dir):
                 cv2.imwrite(os.path.join(output_dir, f"frame_{frame_id}.jpg"), 
                             frame_copy)
                 
-                # Add to detections list
+                # Add to detections list - convert numpy types to native Python types for JSON serialization
                 detections.append({
-                    'frame_id': frame_id,
-                    'timestamp': timestamp,
-                    'confidence': detection['confidence'],
-                    'box': detection['box']
+                    'frame_id': str(frame_id),
+                    'timestamp': float(timestamp),
+                    'confidence': float(detection['confidence']),
+                    'box': [int(b) for b in detection['box']]
                 })
             
         # Release the video capture
@@ -223,8 +223,8 @@ def process_video(video_path, output_dir):
         
         return {
             'detections': detections,
-            'frames_analyzed': frames_processed,
-            'processing_time': processing_time
+            'frames_analyzed': int(frames_processed),
+            'processing_time': float(processing_time)
         }
         
     except Exception as e:
@@ -233,7 +233,7 @@ def process_video(video_path, output_dir):
         return {
             'error': f"Error processing video: {str(e)}",
             'detections': [],
-            'frames_analyzed': frames_processed
+            'frames_analyzed': int(frames_processed)
         }
 
 def format_timestamp(seconds):

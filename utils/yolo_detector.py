@@ -72,10 +72,10 @@ def detect_humans(model, frame, conf_threshold=0.25):
                     scale = original_width / width
                     x1, y1, x2, y2 = int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)
                 
-                # Add to detections
+                # Add to detections - convert NumPy types to native Python types for JSON serialization
                 detections.append({
-                    'box': [x1, y1, x2, y2],
-                    'confidence': confidence
+                    'box': [int(x1), int(y1), int(x2), int(y2)],
+                    'confidence': float(confidence)
                 })
         
         return detections
