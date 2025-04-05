@@ -120,6 +120,13 @@ function uploadVideo() {
         // Hide upload progress, show video container
         uploadProgress.classList.add("d-none");
         videoContainer.classList.remove("d-none");
+
+        // Disable the file input after successful upload
+        videoInput.disabled = true;
+        videoInput.setAttribute("disabled", "disabled");
+
+        // Add a cross button to reload the page
+        addReloadButton();
       } else {
         alert("Error: " + response.error);
         uploadProgress.classList.add("d-none");
@@ -139,6 +146,50 @@ function uploadVideo() {
   };
 
   xhr.send(formData);
+}
+
+// Function to add a reload button after successful upload
+function addReloadButton() {
+  // Check if the button already exists
+  if (document.getElementById("reloadButton")) {
+    return;
+  }
+
+  // Create the reload button
+  const reloadButton = document.createElement("button");
+  reloadButton.id = "reloadButton";
+  reloadButton.className = "btn rounded-circle ms-2";
+  reloadButton.style.backgroundColor = "red";
+  reloadButton.innerHTML = '<i class="fas fa-times text-white"></i>';
+  reloadButton.title = "Upload a different video";
+
+  // Add click event to reload the page
+  reloadButton.addEventListener("click", function () {
+    window.location.reload();
+  });
+
+  // Add the button next to the file input
+  const fileInputContainer = videoInput.parentElement;
+  fileInputContainer.appendChild(reloadButton);
+
+  // Add a visual indicator that the file input is disabled
+  const fileInputWrapper = videoInput.parentElement;
+  fileInputWrapper.classList.add("disabled-input-wrapper");
+
+  // Explicitly disable the file input
+  videoInput.disabled = true;
+  videoInput.setAttribute("disabled", "disabled");
+
+  // Add a label to indicate the current file is loaded
+  const currentFileLabel = document.createElement("div");
+  currentFileLabel.className = "current-file-label mt-2";
+  currentFileLabel.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Video loaded: <span class="fw-bold">${videoInput.files[0].name}</span>`;
+
+  // Insert the label after the file input container
+  fileInputWrapper.parentElement.insertBefore(
+    currentFileLabel,
+    fileInputWrapper.nextSibling
+  );
 }
 
 // Initialize the video.js player

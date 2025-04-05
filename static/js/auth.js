@@ -56,25 +56,52 @@ firebase.auth().onAuthStateChanged((user) => {
   }
 });
 
-// Show UI elements based on auth state
 function showAuthUI(user) {
   if (user) {
     // User is signed in
     if (userInfo) {
       userInfo.classList.remove("d-none");
-      if (userEmail) userEmail.textContent = user.email;
+      if (userAvatar) {
+        // Default avatar as a data URI (a simple user icon)
+        const defaultAvatar =
+          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
+
+        // Set the avatar source with error handling
+        if (user.photoURL) {
+          userAvatar.src = user.photoURL;
+        } else {
+          userAvatar.src = defaultAvatar;
+        }
+
+        userAvatar.alt = user.displayName || "User Avatar";
+
+        // Add error handling for the image
+        userAvatar.onerror = function (e) {
+          this.src = defaultAvatar;
+        };
+
+        // Add load success handler
+        userAvatar.onload = function () {
+          console.log("Image loaded successfully");
+        };
+      }
+      if (userFirstName) {
+        // Get first name from display name or email
+        const firstName = user.displayName
+          ? user.displayName.split(" ")[0]
+          : user.email.split("@")[0];
+        userFirstName.textContent = firstName;
+      }
     }
     if (mainContent) mainContent.classList.remove("d-none");
     resetSessionTimeout();
   } else {
-    // User is signed out
     if (userInfo) userInfo.classList.add("d-none");
     if (mainContent) mainContent.classList.add("d-none");
     if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
   }
 }
 
-// Reset session timeout
 function resetSessionTimeout() {
   if (sessionTimeoutId) {
     clearTimeout(sessionTimeoutId);

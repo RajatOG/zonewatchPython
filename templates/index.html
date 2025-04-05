@@ -17,13 +17,63 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        /* Styles for disabled file input */
+        .disabled-input-wrapper {
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .disabled-input-wrapper input[type="file"] {
+            background-color: #e9ecef;
+            cursor: not-allowed !important;
+            border: 1px solid #ced4da;
+            color: #6c757d;
+        }
+
+        .disabled-input-wrapper input[type="file"]::-webkit-file-upload-button {
+            background-color: #e9ecef;
+            cursor: not-allowed !important;
+            color: #6c757d;
+        }
+
+        /* Styles for the current file label */
+        .current-file-label {
+            color: #28a745;
+            font-size: 0.9rem;
+        }
+
+        /* Make the reload button more prominent */
+        #reloadButton {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #reloadButton:hover {
+            transform: scale(1.1);
+        }
+
+        /* Logo styles */
+        .navbar-brand img {
+            height: 30px;
+            width: auto;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+    </style>
 </head>
 
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-video me-2"></i>ZoneWatch
+                <img src="/static/img/logo.png" alt="ZoneWatch Logo">ZoneWatch
             </a>
             <span class="navbar-text">
                 Movement Detector for Surveillance Videos
@@ -31,8 +81,11 @@
             <div class="ms-auto">
                 <div id="userInfo" class="d-none">
                     <div class="d-flex align-items-center">
-                        <div class="me-3">
-                            <span class="text-light">Signed in as: <span id="userEmail" class="fw-bold"></span></span>
+                        <div class="me-3 d-flex align-items-center">
+
+                            <span class="text-light">Welcome, <span id="userFirstName" class="fw-bold"></span></span>
+                            <img id="userAvatar" class="rounded-circle me-2"
+                                style="width: 32px; height: 32px; margin-left: 10px;" alt="User Avatar">
                         </div>
                         <button id="signOutBtn" class="btn btn-outline-danger btn-sm">
                             <i class="fas fa-sign-out-alt me-1"></i> Sign Out
@@ -55,9 +108,12 @@
                         <form id="upload-form" enctype="multipart/form-data">
                             <div class="mb-3">
                                 <label for="videoInput" class="form-label">Select Video File</label>
-                                <input class="form-control" type="file" id="videoInput"
-                                    accept=".mp4,.avi,.mov,.mkv,.webm">
-                                <div class="form-text">Supported formats: MP4, AVI, MOV, MKV, WEBM</div>
+                                <div class="d-flex align-items-center">
+                                    <input class="form-control" type="file" id="videoInput"
+                                        accept=".mp4,.avi,.mov,.mkv,.webm">
+                                    <!-- Cross button will be added here dynamically -->
+                                </div>
+                                <div class="form-text">Supported formats: MP4</div>
                             </div>
                             <button type="submit" class="btn btn-primary d-none" id="uploadBtn">
                                 <i class="fas fa-upload me-2"></i>Upload Video
@@ -68,7 +124,7 @@
                                 <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
                                     style="width: 0%"></div>
                             </div>
-                            <small class="text-muted mt-1 d-block">Uploading video...</small>
+                            <small class="text-muted mt-1 d-block">Deleting video...</small>
                         </div>
                     </div>
                 </div>
@@ -204,7 +260,7 @@
             <hr>
             <div class="row">
                 <div class="col-md-12 text-center">
-                    <p class="mb-0">&copy; 2023 ZoneWatch - Movement Detector for Surveillance Videos</p>
+                    <p class="mb-0">&copy; 2025 ZoneWatch - Movement Detector for Surveillance Videos</p>
                 </div>
             </div>
         </div>
