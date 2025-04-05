@@ -130,11 +130,11 @@ def process_video(video_path, output_dir):
     # Calculate frame sampling rate based on video length
     video_duration = frame_count / fps if fps > 0 else 0
     
-    # Fixed 10 frames per second sampling rate
-    if fps > 10:
-        sampling_rate = max(1, int(fps / 10))  # Process 10 frames per second 
+    # Fixed 30 frames per second sampling rate
+    if fps > 30:
+        sampling_rate = max(1, int(fps / 30))  # Process 30 frames per second 
     else:
-        sampling_rate = 1  # If video is already less than 10 fps, process every frame
+        sampling_rate = 1  # If video is already less than 30 fps, process every frame
         
     sampling_rate = max(1, sampling_rate)  # Ensure at least 1
     

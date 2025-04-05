@@ -8,7 +8,7 @@ let sessionId = null;
 let videoInfo = null;
 let realTimeDetectionActive = false;
 let lastCaptureTime = 0;
-const CAPTURE_INTERVAL = 100; // Capture every 100ms (10 frames per second)
+const CAPTURE_INTERVAL = 33; // Capture every 33ms (30 frames per second)
 
 // DOM elements
 const uploadForm = document.getElementById('upload-form');
