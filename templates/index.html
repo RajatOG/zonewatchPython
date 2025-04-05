@@ -1,31 +1,49 @@
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ZoneWatch - Movement Detector for Surveillance Videos</title>
-    
+
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
-    
+
     <!-- Video.js CSS -->
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
-    
+
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/styles.css">
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+    <!-- Auth Script -->
+    <script src="/static/js/auth.js"></script>
 </head>
+
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-video me-2"></i>ZoneWatch
             </a>
-            <span class="navbar-text">
+            <span class="navbar-text me-auto">
                 Movement Detector for Surveillance Videos
             </span>
+            <div class="d-flex align-items-center">
+                <div id="userProfile">
+                    <img id="userAvatar" class="rounded-circle me-2" width="32" height="32" alt="User avatar">
+                    <span id="userName" class="text-light me-3"></span>
+                    <button onclick="signOut()" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i>Sign Out
+                    </button>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -41,16 +59,18 @@
                         <form id="upload-form" enctype="multipart/form-data">
                             <div class="mb-3">
                                 <label for="videoInput" class="form-label">Select Video File</label>
-                                <input class="form-control" type="file" id="videoInput" accept=".mp4,.avi,.mov,.mkv,.webm">
+                                <input class="form-control" type="file" id="videoInput"
+                                    accept=".mp4,.avi,.mov,.mkv,.webm">
                                 <div class="form-text">Supported formats: MP4, AVI, MOV, MKV, WEBM</div>
                             </div>
-                            <button type="submit" class="btn btn-primary" id="uploadBtn">
+                            <button type="submit" class="btn btn-primary d-none" id="uploadBtn">
                                 <i class="fas fa-upload me-2"></i>Upload Video
                             </button>
                         </form>
                         <div class="mt-3 d-none" id="uploadProgress">
                             <div class="progress">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                                    style="width: 0%"></div>
                             </div>
                             <small class="text-muted mt-1 d-block">Uploading video...</small>
                         </div>
@@ -66,28 +86,35 @@
                         <h5 class="card-title mb-0">Video Analysis</h5>
                     </div>
                     <div class="card-body">
-                        <div class="position-relative">
-                            <video id="videoPlayer" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" width="100%" height="auto">
+                        <div class="video-container position-relative">
+                            <video id="videoPlayer" class="video-js vjs-default-skin vjs-big-play-centered" controls
+                                preload="auto" width="100%" height="auto">
                                 <p class="vjs-no-js">
                                     To view this video please enable JavaScript, and consider upgrading to a
-                                    web browser that <a href="https://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a>
+                                    web browser that <a href="https://videojs.com/html5-video-support/"
+                                        target="_blank">supports HTML5 video</a>
                                 </p>
                             </video>
-                        </div>
-                        
-                        <div class="mt-3 d-flex justify-content-end">
-                            <div>
-                                <button id="analyzeBtn" class="btn btn-success">
-                                    <i class="fas fa-search me-1"></i> Analyze Full Video
+                            <div id="zoneRequiredMessage" class="zone-required-message">
+                                <i class="fas fa-draw-polygon"></i>
+                                <p>Please draw a zone before playing the video</p>
+                                <button class="btn btn-sm btn-primary mt-2" id="drawZoneBtn">
+                                    <i class="fas fa-draw-polygon me-1"></i> Draw Zone
                                 </button>
                             </div>
                         </div>
-                        
+
+                        <div class="mt-3 d-flex justify-content-end">
+                            <!-- Removing the analyze button -->
+                        </div>
+
                         <div class="mt-3 d-none" id="analysisProgress">
                             <div class="progress">
-                                <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                <div class="progress-bar bg-info progress-bar-striped progress-bar-animated"
+                                    role="progressbar" style="width: 0%"></div>
                             </div>
-                            <small class="text-muted mt-1 d-block">Processing video frames and detecting movement...</small>
+                            <small class="text-muted mt-1 d-block">Processing video frames and detecting
+                                movement...</small>
                         </div>
                     </div>
                 </div>
@@ -115,7 +142,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="card-title mb-0">Zone Information</h5>
@@ -134,7 +161,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="row d-none" id="resultsContainer">
             <div class="col-md-12">
                 <div class="card mb-4">
@@ -160,7 +187,8 @@
             <div class="row">
                 <div class="col-md-6">
                     <h5>ZoneWatch</h5>
-                    <p class="text-muted">A web-based surveillance video analysis tool with zone-specific human movement detection using OpenCV.</p>
+                    <p class="text-muted">A web-based surveillance video analysis tool with zone-specific human movement
+                        detection using OpenCV.</p>
                 </div>
                 <div class="col-md-6">
                     <h5>Features</h5>
@@ -195,10 +223,44 @@
             document.head.appendChild(fabricScript);
         }
     </script>
-    
+
     <!-- Custom JavaScript - with proper dependency order -->
     <script src="/static/js/zone-drawer.js"></script>
     <script src="/static/js/video-player.js"></script>
     <script src="/static/js/detection-timeline.js"></script>
+
+    <script>
+        // Add event listener for the draw zone button
+        document.addEventListener('DOMContentLoaded', function () {
+            const drawZoneBtn = document.getElementById('drawZoneBtn');
+            if (drawZoneBtn) {
+                drawZoneBtn.addEventListener('click', function () {
+                    if (window.videoPlayerModule) {
+                        window.videoPlayerModule.toggleZoneDrawing();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <script>
+        // Update user profile when authenticated
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/32';
+                document.getElementById('userName').textContent = user.displayName || user.email;
+            }
+        });
+
+        // Check session before form submission
+        document.getElementById('upload-form').addEventListener('submit', (e) => {
+            if (window.auth.isSessionExpired()) {
+                e.preventDefault();
+                window.auth.handleSessionExpiry();
+                return false;
+            }
+        });
+    </script>
 </body>
+
 </html>
