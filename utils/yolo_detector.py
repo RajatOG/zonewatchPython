@@ -1,113 +1,98 @@
-import os
 import cv2
-import numpy as np
-import logging
+from ultralytics import YOLO
 
-logger = logging.getLogger(__name__)
+# Load YOLOv8 model once
+_model = YOLO("yolov8n.pt")  # Or use a path to a custom trained model if needed
+
 
 def initialize_model():
-    """
-    Initialize and return the OpenCV-based HOG+SVM model for person detection.
-    
-    Returns:
-        HOGDescriptor: The initialized model
-    """
-    try:
-        # Initialize HOG Descriptor with SVM model for people detection
-        hog = cv2.HOGDescriptor()
-        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-        logger.info("HOG+SVM person detector initialized successfully")
-        return hog
-    except Exception as e:
-        logger.error(f"Error initializing HOG+SVM detector: {str(e)}")
-        raise
+    return _model
 
-def detect_humans(model, frame, conf_threshold=0.25):
+
+def detect_humans(model, frame, polygon=None, conf_threshold=0.50):
     """
-    Detect humans in a frame using the HOG+SVM model.
-    
+    Detect humans in the frame using YOLOv8.
+
     Args:
-        model: The HOG detector model
-        frame (numpy.ndarray): The image frame to process
-        conf_threshold (float): Confidence threshold for detections
-        
+        model: YOLOv8 model object.
+        frame: Frame from the video (np.ndarray).
+        polygon: Optional list of (x, y) tuples defining ROI.
+        conf_threshold: Confidence threshold for detection.
+
     Returns:
-        list: List of human detections with bounding boxes and confidence scores
+        List of detection dicts with 'box' and 'confidence'.
     """
-    try:
-        # Resize the frame for better detection and performance
-        height, width = frame.shape[:2]
-        
-        # If the frame is too large, resize it (max width of 800px)
-        if width > 800:
-            scale = 800 / width
-            frame = cv2.resize(frame, (int(width * scale), int(height * scale)))
-            height, width = frame.shape[:2]
-        
-        # Run HOG detection with optimized parameters
-        # - Smaller winStride helps detect distant or smaller figures
-        # - Larger padding provides more context
-        # - Smaller scale factor performs a more thorough search
-        boxes, weights = model.detectMultiScale(
-            frame, 
-            winStride=(4, 4),
-            padding=(16, 16),
-            scale=1.03  # Smaller scale factor searches more thoroughly
-        )
-        
-        # Process results
-        detections = []
-        
-        for i, (x, y, w, h) in enumerate(boxes):
-            confidence = float(weights[i])
-            
-            # Filter by confidence threshold
-            if confidence >= conf_threshold:
-                # Convert to x1, y1, x2, y2 format
-                x1, y1, x2, y2 = x, y, x + w, y + h
-                
-                # If we resized the frame, scale the coordinates back to original size
-                original_width = frame.shape[1] * (width > 800 and 800 / width or 1)
-                if original_width != width:
-                    scale = original_width / width
-                    x1, y1, x2, y2 = int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)
-                
-                # Add to detections - convert NumPy types to native Python types for JSON serialization
-                detections.append({
-                    'box': [int(x1), int(y1), int(x2), int(y2)],
-                    'confidence': float(confidence)
-                })
-        
-        return detections
-    
-    except Exception as e:
-        logger.error(f"Error detecting humans with HOG+SVM: {str(e)}")
-        return []
+    results = model(frame, classes=[0], verbose=False)  # Class 0 is 'person'
+    detections = []
+
+    for result in results:
+        for box in result.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            confidence = float(box.conf[0])
+
+            if confidence < conf_threshold:
+                continue
+
+            # Check ROI polygon inclusion if provided
+            if polygon:
+                # Use center point of box for ROI check
+                cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+                if not point_in_polygon((cx, cy), polygon):
+                    continue
+
+            detections.append({
+                'box': [x1, y1, x2, y2],
+                'confidence': confidence
+            })
+
+    return detections
+
+
+def point_in_polygon(point, polygon):
+    x, y = point
+    n = len(polygon)
+    inside = False
+
+    p1x, p1y = polygon[0]
+    for i in range(1, n + 1):
+        p2x, p2y = polygon[i % n]
+        if y > min(p1y, p2y):
+            if y <= max(p1y, p2y):
+                if x <= max(p1x, p2x):
+                    x_intersect = p1x
+                    if p1y != p2y:
+                        x_intersect = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or x <= x_intersect:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+
+    return inside
+
 
 def draw_detection_overlay(frame, detections, color=(0, 255, 0)):
     """
-    Draw detection boxes and labels on a frame.
-    
+    Draw bounding boxes and confidence scores for detections on the frame.
+
     Args:
-        frame (numpy.ndarray): The image frame to draw on
-        detections (list): List of detection dictionaries
-        color (tuple): BGR color for the boxes
-        
+        frame (np.ndarray): The image frame to annotate.
+        detections (list): List of detection dicts, each with 'box' and 'confidence'.
+        color (tuple): BGR color for drawing boxes.
+
     Returns:
-        numpy.ndarray: Frame with detections drawn
+        np.ndarray: Annotated frame with overlays.
     """
     result = frame.copy()
-    
+
     for detection in detections:
         x1, y1, x2, y2 = detection['box']
         conf = detection['confidence']
-        
+
         # Draw bounding box
         cv2.rectangle(result, (x1, y1), (x2, y2), color, 2)
-        
-        # Draw label with confidence
+
+        # Label with confidence
         label = f"Person: {conf:.2f}"
-        cv2.putText(result, label, (x1, y1 - 10), 
+        cv2.putText(result, label, (x1, y1 - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-    
+
     return result

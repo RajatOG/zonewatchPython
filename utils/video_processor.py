@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import time
 import logging
-from .yolo_detector import initialize_model, detect_humans, draw_detection_overlay
+from utils.yolo_detector import initialize_model, detect_humans, draw_detection_overlay
 
 logger = logging.getLogger(__name__)
 
@@ -175,18 +175,8 @@ def process_video(video_path, output_dir):
                 
                 # Create a unique frame ID
                 frame_id = f"{int(timestamp)}_{len(detections)}"
-                
-                # Draw the detection on the frame
-                frame_copy = frame.copy()
-                
-                # Draw detection box
-                x1, y1, x2, y2 = detection['box']
-                cv2.rectangle(frame_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                
-                # Add label with confidence
-                confidence_text = f"Person: {detection['confidence']:.2f}"
-                cv2.putText(frame_copy, confidence_text, (x1, y1 - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+                frame_copy = draw_detection_overlay(frame.copy(), [detection])
                 
                 # Add timestamp
                 timestamp_text = f"Time: {format_timestamp(timestamp)}"
