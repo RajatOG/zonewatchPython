@@ -266,3 +266,20 @@ footer {
 #uploadProgress .progress-bar {
   transition: width 0.3s ease;
 }
+
+/* External play/pause buttons */
+#externalPlayBtn,
+#externalPauseBtn {
+  min-width: 120px;
+  transition: all 0.2s ease-in-out;
+}
+
+#externalPlayBtn:hover,
+#externalPauseBtn:hover {
+  transform: scale(1.05);
+}
+
+#externalPlayBtn:active,
+#externalPauseBtn:active {
+  transform: scale(0.95);
+}

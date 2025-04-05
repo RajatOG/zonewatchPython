@@ -418,8 +418,19 @@ function getZone() {
 // Enable video playback
 function enableVideoPlayback() {
   if (videoPlayer) {
-    videoPlayer.controls(true);
+    videoPlayer.controls(false); // Keep controls disabled
     videoPlayer.playbackRates([0.5, 1, 1.5, 2]);
+
+    // Show external play button
+    const externalPlayBtn = document.getElementById("externalPlayBtn");
+    const externalPauseBtn = document.getElementById("externalPauseBtn");
+
+    if (externalPlayBtn) {
+      externalPlayBtn.classList.remove("d-none");
+    }
+    if (externalPauseBtn) {
+      externalPauseBtn.classList.add("d-none");
+    }
   }
 }
 
@@ -428,6 +439,17 @@ function disableVideoPlayback() {
   if (videoPlayer) {
     videoPlayer.controls(false);
     videoPlayer.playbackRates([]);
+
+    // Hide external play/pause buttons
+    const externalPlayBtn = document.getElementById("externalPlayBtn");
+    const externalPauseBtn = document.getElementById("externalPauseBtn");
+
+    if (externalPlayBtn) {
+      externalPlayBtn.classList.add("d-none");
+    }
+    if (externalPauseBtn) {
+      externalPauseBtn.classList.add("d-none");
+    }
   }
 }
 

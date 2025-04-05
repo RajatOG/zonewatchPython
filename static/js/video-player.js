@@ -28,6 +28,8 @@ const timelineList = document.getElementById("timelineList");
 const resultsStats = document.getElementById("resultsStats");
 const resultsFrames = document.getElementById("resultsFrames");
 const zoneRequiredMessage = document.getElementById("zoneRequiredMessage");
+const externalPlayBtn = document.getElementById("externalPlayBtn");
+const externalPauseBtn = document.getElementById("externalPauseBtn");
 
 // Initialize video player
 let detectionCanvas = null;
@@ -242,15 +244,44 @@ function initializeVideoPlayer(filename) {
     if (!realTimeDetectionActive) {
       toggleRealTimeDetection(true);
     }
+    // Update external play/pause buttons
+    externalPlayBtn.classList.add("d-none");
+    externalPauseBtn.classList.remove("d-none");
+  });
+
+  // Add pause event to update external play/pause buttons
+  videoPlayer.on("pause", function () {
+    externalPlayBtn.classList.remove("d-none");
+    externalPauseBtn.classList.add("d-none");
   });
 
   // Add ended event to show the timeline
   videoPlayer.on("ended", function () {
     showDetectionTimeline();
+    // Update external play/pause buttons
+    externalPlayBtn.classList.remove("d-none");
+    externalPauseBtn.classList.add("d-none");
   });
 
   // Add zone drawing button to the video controls
   addZoneDrawingButton();
+
+  // Add event listeners for external play/pause buttons
+  if (externalPlayBtn) {
+    externalPlayBtn.addEventListener("click", function () {
+      if (videoPlayer) {
+        videoPlayer.play();
+      }
+    });
+  }
+
+  if (externalPauseBtn) {
+    externalPauseBtn.addEventListener("click", function () {
+      if (videoPlayer) {
+        videoPlayer.pause();
+      }
+    });
+  }
 }
 
 // Add zone drawing button to the video controls
@@ -313,8 +344,15 @@ function toggleZoneDrawing() {
 // Enable video playback
 function enableVideoPlayback() {
   if (videoPlayer) {
-    videoPlayer.controls(true);
+    videoPlayer.controls(false); // Keep controls disabled
     videoPlayer.playbackRates([0.5, 1, 1.5, 2]);
+    // Show external play button
+    if (externalPlayBtn) {
+      externalPlayBtn.classList.remove("d-none");
+    }
+    if (externalPauseBtn) {
+      externalPauseBtn.classList.add("d-none");
+    }
   }
   hideZoneRequiredMessage();
 }
@@ -324,6 +362,13 @@ function disableVideoPlayback() {
   if (videoPlayer) {
     videoPlayer.controls(false);
     videoPlayer.playbackRates([]);
+    // Hide external play/pause buttons
+    if (externalPlayBtn) {
+      externalPlayBtn.classList.add("d-none");
+    }
+    if (externalPauseBtn) {
+      externalPauseBtn.classList.add("d-none");
+    }
   }
   showZoneRequiredMessage();
 }

@@ -17,13 +17,6 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/styles.css">
-
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
-    <!-- Auth Script -->
-    <script src="/static/js/auth.js"></script>
 </head>
 
 <body>
@@ -32,18 +25,9 @@
             <a class="navbar-brand" href="/">
                 <i class="fas fa-video me-2"></i>ZoneWatch
             </a>
-            <span class="navbar-text me-auto">
+            <span class="navbar-text">
                 Movement Detector for Surveillance Videos
             </span>
-            <div class="d-flex align-items-center">
-                <div id="userProfile">
-                    <img id="userAvatar" class="rounded-circle me-2" width="32" height="32" alt="User avatar">
-                    <span id="userName" class="text-light me-3"></span>
-                    <button onclick="signOut()" class="btn btn-outline-light btn-sm">
-                        <i class="fas fa-sign-out-alt me-1"></i>Sign Out
-                    </button>
-                </div>
-            </div>
         </div>
     </nav>
 
@@ -104,8 +88,13 @@
                             </div>
                         </div>
 
-                        <div class="mt-3 d-flex justify-content-end">
-                            <!-- Removing the analyze button -->
+                        <div class="mt-3 d-flex justify-content-between">
+                            <button id="externalPlayBtn" class="btn btn-success d-none">
+                                <i class="fas fa-play me-1"></i> Play Video
+                            </button>
+                            <button id="externalPauseBtn" class="btn btn-warning d-none">
+                                <i class="fas fa-pause me-1"></i> Pause Video
+                            </button>
                         </div>
 
                         <div class="mt-3 d-none" id="analysisProgress">
@@ -239,25 +228,6 @@
                         window.videoPlayerModule.toggleZoneDrawing();
                     }
                 });
-            }
-        });
-    </script>
-
-    <script>
-        // Update user profile when authenticated
-        firebase.auth().onAuthStateChanged((user) => {
-            if (user) {
-                document.getElementById('userAvatar').src = user.photoURL || 'https://via.placeholder.com/32';
-                document.getElementById('userName').textContent = user.displayName || user.email;
-            }
-        });
-
-        // Check session before form submission
-        document.getElementById('upload-form').addEventListener('submit', (e) => {
-            if (window.auth.isSessionExpired()) {
-                e.preventDefault();
-                window.auth.handleSessionExpiry();
-                return false;
             }
         });
     </script>
