@@ -130,19 +130,11 @@ def process_video(video_path, output_dir):
     # Calculate frame sampling rate based on video length
     video_duration = frame_count / fps if fps > 0 else 0
     
-    # Adaptive sampling rate:
-    # - Very short videos (under 1 minute): process every frame
-    # - Short videos (1-5 minutes): 1 frame per second
-    # - Medium videos (5-30 minutes): 1 frame every 2-3 seconds
-    # - Long videos (over 30 minutes): 1 frame every 4-5 seconds
-    if video_duration < 60:  # Under 1 minute
-        sampling_rate = 1
-    elif video_duration < 300:  # 1-5 minutes
-        sampling_rate = int(fps)
-    elif video_duration < 1800:  # 5-30 minutes
-        sampling_rate = int(fps * 2)
-    else:  # Over 30 minutes
-        sampling_rate = int(fps * 4)
+    # Fixed 10 frames per second sampling rate
+    if fps > 10:
+        sampling_rate = max(1, int(fps / 10))  # Process 10 frames per second 
+    else:
+        sampling_rate = 1  # If video is already less than 10 fps, process every frame
         
     sampling_rate = max(1, sampling_rate)  # Ensure at least 1
     
