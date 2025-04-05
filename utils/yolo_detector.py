@@ -9,20 +9,20 @@ def initialize_model():
     return _model
 
 
-def detect_humans(model, frame, polygon=None, conf_threshold=0.50):
+def detect_humans(model, frame, roi_box=None, conf_threshold=0.50):
     """
-    Detect humans in the frame using YOLOv8.
+    Detect humans in the frame using YOLOv8 and filter by ROI box if provided.
 
     Args:
-        model: YOLOv8 model object.
-        frame: Frame from the video (np.ndarray).
-        polygon: Optional list of (x, y) tuples defining ROI.
-        conf_threshold: Confidence threshold for detection.
+        model: YOLOv8 model.
+        frame: Frame from the video.
+        roi_box: Optional static ROI (x1, y1, x2, y2) in pixels.
+        conf_threshold: Minimum confidence score.
 
     Returns:
-        List of detection dicts with 'box' and 'confidence'.
+        List of detections (box + confidence).
     """
-    results = model(frame, classes=[0], verbose=False)  # Class 0 is 'person'
+    results = model(frame, classes=[0], verbose=False)  # 0 = person
     detections = []
 
     for result in results:
@@ -33,11 +33,12 @@ def detect_humans(model, frame, polygon=None, conf_threshold=0.50):
             if confidence < conf_threshold:
                 continue
 
-            # Check ROI polygon inclusion if provided
-            if polygon:
-                # Use center point of box for ROI check
-                cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
-                if not point_in_polygon((cx, cy), polygon):
+            cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # center of box
+
+            # Filter by rectangular ROI if given
+            if roi_box:
+                rx1, ry1, rx2, ry2 = roi_box
+                if not (rx1 <= cx <= rx2 and ry1 <= cy <= ry2):
                     continue
 
             detections.append({
