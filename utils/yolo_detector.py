@@ -22,7 +22,7 @@ def initialize_model():
         logger.error(f"Error initializing HOG+SVM detector: {str(e)}")
         raise
 
-def detect_humans(model, frame, conf_threshold=0.40):
+def detect_humans(model, frame, conf_threshold=0.25):
     """
     Detect humans in a frame using the HOG+SVM model.
     
@@ -44,13 +44,16 @@ def detect_humans(model, frame, conf_threshold=0.40):
             frame = cv2.resize(frame, (int(width * scale), int(height * scale)))
             height, width = frame.shape[:2]
         
-        # Run HOG detection
+        # Run HOG detection with optimized parameters
+        # - Smaller winStride helps detect distant or smaller figures
+        # - Larger padding provides more context
+        # - Smaller scale factor performs a more thorough search
         boxes, weights = model.detectMultiScale(
             frame, 
-            winStride=(8, 8),
+            winStride=(4, 4),
             padding=(16, 16),
-            scale=1.05,
-            finalThreshold=conf_threshold * 2
+            scale=1.03,  # Smaller scale factor searches more thoroughly
+            finalThreshold=conf_threshold * 1.5
         )
         
         # Process results
@@ -64,9 +67,10 @@ def detect_humans(model, frame, conf_threshold=0.40):
                 # Convert to x1, y1, x2, y2 format
                 x1, y1, x2, y2 = x, y, x + w, y + h
                 
-                # If we resized the frame, scale the coordinates back
-                if width != 800 and width > 800:
-                    scale = width / 800
+                # If we resized the frame, scale the coordinates back to original size
+                original_width = frame.shape[1] * (width > 800 and 800 / width or 1)
+                if original_width != width:
+                    scale = original_width / width
                     x1, y1, x2, y2 = int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)
                 
                 # Add to detections

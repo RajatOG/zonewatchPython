@@ -74,7 +74,23 @@ def upload_video():
 @app.route('/video/<session_id>/<filename>')
 def serve_video(session_id, filename):
     session_dir = os.path.join(UPLOAD_FOLDER, session_id)
-    return send_from_directory(session_dir, secure_filename(filename))
+    secure_name = secure_filename(filename)
+    response = send_from_directory(session_dir, secure_name)
+    
+    # Set the correct content type based on the file extension
+    ext = os.path.splitext(secure_name)[1].lower()
+    if ext == '.mp4':
+        response.headers['Content-Type'] = 'video/mp4'
+    elif ext == '.webm':
+        response.headers['Content-Type'] = 'video/webm'
+    elif ext == '.avi':
+        response.headers['Content-Type'] = 'video/x-msvideo'
+    elif ext == '.mov':
+        response.headers['Content-Type'] = 'video/quicktime'
+    elif ext == '.mkv':
+        response.headers['Content-Type'] = 'video/x-matroska'
+    
+    return response
 
 @app.route('/analyze', methods=['POST'])
 def analyze_video():

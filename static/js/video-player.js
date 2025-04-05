@@ -97,6 +97,20 @@ function initializeVideoPlayer(sessionId, filename) {
     
     const videoUrl = `/video/${sessionId}/${filename}`;
     
+    // Determine the video type from the filename
+    let videoType = 'video/mp4'; // Default
+    const extension = filename.split('.').pop().toLowerCase();
+    
+    if (extension === 'webm') {
+        videoType = 'video/webm';
+    } else if (extension === 'avi') {
+        videoType = 'video/x-msvideo';
+    } else if (extension === 'mov') {
+        videoType = 'video/quicktime';
+    } else if (extension === 'mkv') {
+        videoType = 'video/x-matroska';
+    }
+    
     videoPlayer = videojs('videoPlayer', {
         controls: true,
         preload: 'auto',
@@ -104,7 +118,7 @@ function initializeVideoPlayer(sessionId, filename) {
         playbackRates: [0.5, 1, 1.5, 2],
         sources: [{
             src: videoUrl,
-            type: 'video/mp4'
+            type: videoType
         }]
     });
     

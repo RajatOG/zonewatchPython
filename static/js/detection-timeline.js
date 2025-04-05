@@ -3,12 +3,6 @@
  * Creates visual timeline of detected movement events
  */
 
-// Use zone colors from zone-drawer.js
-const zoneColors = [
-    '#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', 
-    '#33FFF3', '#FF8033', '#8033FF', '#33FF80', '#FF3380'
-];
-
 // Function to create a visual timeline of detections
 function createTimelineVisualization(detections) {
     if (!detections || detections.length === 0) return;

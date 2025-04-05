@@ -169,7 +169,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <h5>ZoneWatch</h5>
-                    <p class="text-muted">A web-based surveillance video analysis tool with zone-specific human movement detection using YOLO.</p>
+                    <p class="text-muted">A web-based surveillance video analysis tool with zone-specific human movement detection using OpenCV.</p>
                 </div>
                 <div class="col-md-6">
                     <h5>Features</h5>
@@ -195,9 +195,9 @@
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.2.1/fabric.min.js"></script>
     
-    <!-- Custom JavaScript -->
-    <script src="/static/js/video-player.js"></script>
+    <!-- Custom JavaScript - with proper dependency order -->
     <script src="/static/js/zone-drawer.js"></script>
+    <script src="/static/js/video-player.js"></script>
     <script src="/static/js/detection-timeline.js"></script>
 </body>
 </html>
