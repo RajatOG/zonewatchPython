@@ -122,11 +122,8 @@ function initializeVideoPlayer(sessionId, filename) {
         }]
     });
     
-    // After video loads, initialize the zone drawer
+    // After video loads, enable analyze button
     videoPlayer.on('loadedmetadata', function() {
-        // Initialize zone drawer with video dimensions
-        initializeZoneDrawer(videoPlayer.videoWidth(), videoPlayer.videoHeight());
-        
         // Enable analyze button once video is loaded
         analyzeBtn.disabled = false;
     });
@@ -135,27 +132,19 @@ function initializeVideoPlayer(sessionId, filename) {
     analyzeBtn.addEventListener('click', analyzeVideo);
 }
 
-// Function to send the zones to the server for analysis
+// Function to analyze the video for human movement
 function analyzeVideo() {
-    // Get zones from the zone drawer
-    const zones = getZones();
-    
-    if (zones.length === 0) {
-        alert('Please draw at least one zone before analyzing.');
-        return;
-    }
-    
     // Disable analyze button and show progress
     analyzeBtn.disabled = true;
     analysisProgress.classList.remove('d-none');
     
-    // Send zones to the server for analysis
+    // Send request to the server for analysis
     fetch('/analyze', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ zones: zones })
+        body: JSON.stringify({ session_id: sessionId })
     })
     .then(response => response.json())
     .then(data => {
@@ -217,7 +206,7 @@ function displayResults(results) {
                 <h6 class="mb-1"><i class="fas fa-user me-2"></i>Human Detected</h6>
                 <small class="text-muted">${formattedTime}</small>
             </div>
-            <p class="mb-1">Zone: <span class="badge bg-secondary">${detection.zone_id}</span> Confidence: <span class="badge bg-info">${Math.round(detection.confidence * 100)}%</span></p>
+            <p class="mb-1">Confidence: <span class="badge bg-info">${Math.round(detection.confidence * 100)}%</span></p>
         `;
         
         // Add click event to seek to this time in the video
@@ -251,7 +240,7 @@ function displayResults(results) {
                 <img src="/frame/${sessionId}/${detection.frame_id}" class="card-img-top" alt="Detection Frame">
                 <div class="card-body">
                     <h6 class="card-title">Detection at ${formattedTime}</h6>
-                    <p class="card-text">Zone: ${detection.zone_id} | Confidence: ${Math.round(detection.confidence * 100)}%</p>
+                    <p class="card-text">Confidence: ${Math.round(detection.confidence * 100)}%</p>
                 </div>
                 <div class="card-footer">
                     <button class="btn btn-sm btn-primary view-detection-btn">View in Video</button>
@@ -278,7 +267,7 @@ function displayResults(results) {
         timelineList.innerHTML = `
             <div class="list-group-item text-center py-3">
                 <i class="fas fa-exclamation-circle text-warning fs-4 mb-2"></i>
-                <p class="mb-0">No human movement detected in the defined zones.</p>
+                <p class="mb-0">No human movement detected in the video.</p>
             </div>
         `;
         
@@ -286,9 +275,9 @@ function displayResults(results) {
             <div class="col-12 text-center py-4">
                 <div class="alert alert-warning">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    No human movement detected in any of the defined zones.
+                    No human movement detected in this video.
                 </div>
-                <p>Try adjusting your zones or using a different video.</p>
+                <p>Try using a different video.</p>
             </div>
         `;
     }

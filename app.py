@@ -97,13 +97,6 @@ def analyze_video():
     if 'session_id' not in session:
         return jsonify({'error': 'No active session. Please upload a video first.'}), 400
     
-    # Get zone coordinates from the request
-    data = request.json
-    zones = data.get('zones', [])
-    
-    if not zones:
-        return jsonify({'error': 'No zones defined'}), 400
-    
     video_path = session.get('video_path')
     if not video_path or not os.path.exists(video_path):
         return jsonify({'error': 'Video not found'}), 404
@@ -113,9 +106,9 @@ def analyze_video():
     os.makedirs(results_dir, exist_ok=True)
     
     try:
-        # Process the video with the defined zones
+        # Process the video for full frame analysis
         # This is a long-running task, in a production app you might want to use a task queue
-        results = process_video(video_path, zones, results_dir)
+        results = process_video(video_path, results_dir)
         
         return jsonify({
             'success': True,

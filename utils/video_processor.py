@@ -92,19 +92,18 @@ def point_in_polygon(point, polygon):
     
     return inside
 
-def process_video(video_path, zones, output_dir):
+def process_video(video_path, output_dir):
     """
-    Process a video file for human detection within specific zones.
+    Process a video file for human detection across the entire frame.
     
     Args:
         video_path (str): Path to the video file
-        zones (list): List of zones, each with a list of points defining a polygon
         output_dir (str): Directory to save detection frames
         
     Returns:
-        dict: Detection results including timestamps, zones, etc.
+        dict: Detection results including timestamps, etc.
     """
-    # Initialize YOLO model
+    # Initialize model
     model = initialize_model()
     
     # Open the video file
@@ -128,17 +127,7 @@ def process_video(video_path, zones, output_dir):
     frame_idx = 0
     frames_processed = 0
     
-    # Convert normalized zone coordinates to pixel coordinates
-    pixel_zones = []
-    for zone in zones:
-        pixel_zones.append({
-            'id': zone['id'],
-            'color': zone['color'],
-            'points': normalize_polygon(zone['points'], width, height)
-        })
-    
     # Calculate frame sampling rate based on video length
-    # Process more frames for shorter videos, fewer for longer videos
     video_duration = frame_count / fps if fps > 0 else 0
     
     # Adaptive sampling rate:
@@ -187,64 +176,42 @@ def process_video(video_path, zones, output_dir):
             # Detect humans in the frame
             detection_results = detect_humans(model, frame)
             
-            # Check if any detections are inside the defined zones
+            # Process each detection
             for detection in detection_results:
-                # Get the center point of the detection box
-                cx = int((detection['box'][0] + detection['box'][2]) / 2)
-                cy = int((detection['box'][1] + detection['box'][3]) / 2)
+                # Calculate timestamp
+                timestamp = frame_idx / fps
                 
-                # Check each zone
-                for zone in pixel_zones:
-                    if point_in_polygon((cx, cy), zone['points']):
-                        # Calculate timestamp
-                        timestamp = frame_idx / fps
-                        
-                        # Create a unique frame ID
-                        frame_id = f"{int(timestamp)}_{len(detections)}"
-                        
-                        # Draw the detection and zone on the frame
-                        frame_copy = frame.copy()
-                        
-                        # Draw zone
-                        zone_points = np.array(zone['points'], np.int32)
-                        cv2.polylines(frame_copy, [zone_points], True, 
-                                    hex_to_rgb(zone['color']), 2)
-                        
-                        # Fill zone with semi-transparent color
-                        overlay = frame_copy.copy()
-                        cv2.fillPoly(overlay, [zone_points], 
-                                    hex_to_rgb(zone['color'], alpha=0.3))
-                        cv2.addWeighted(overlay, 0.3, frame_copy, 0.7, 0, frame_copy)
-                        
-                        # Draw detection box
-                        x1, y1, x2, y2 = detection['box']
-                        cv2.rectangle(frame_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        
-                        # Add label with confidence
-                        confidence_text = f"Person: {detection['confidence']:.2f}"
-                        cv2.putText(frame_copy, confidence_text, (x1, y1 - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                        
-                        # Add timestamp
-                        timestamp_text = f"Time: {format_timestamp(timestamp)}"
-                        cv2.putText(frame_copy, timestamp_text, (10, 30),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-                        
-                        # Save the detection frame
-                        cv2.imwrite(os.path.join(output_dir, f"frame_{frame_id}.jpg"), 
-                                    frame_copy)
-                        
-                        # Add to detections list
-                        detections.append({
-                            'frame_id': frame_id,
-                            'timestamp': timestamp,
-                            'zone_id': zone['id'],
-                            'confidence': detection['confidence'],
-                            'box': detection['box']
-                        })
-                        
-                        # Only count each detection in one zone (the first it matches)
-                        break
+                # Create a unique frame ID
+                frame_id = f"{int(timestamp)}_{len(detections)}"
+                
+                # Draw the detection on the frame
+                frame_copy = frame.copy()
+                
+                # Draw detection box
+                x1, y1, x2, y2 = detection['box']
+                cv2.rectangle(frame_copy, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                
+                # Add label with confidence
+                confidence_text = f"Person: {detection['confidence']:.2f}"
+                cv2.putText(frame_copy, confidence_text, (x1, y1 - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+                # Add timestamp
+                timestamp_text = f"Time: {format_timestamp(timestamp)}"
+                cv2.putText(frame_copy, timestamp_text, (10, 30),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                
+                # Save the detection frame
+                cv2.imwrite(os.path.join(output_dir, f"frame_{frame_id}.jpg"), 
+                            frame_copy)
+                
+                # Add to detections list
+                detections.append({
+                    'frame_id': frame_id,
+                    'timestamp': timestamp,
+                    'confidence': detection['confidence'],
+                    'box': detection['box']
+                })
             
         # Release the video capture
         cap.release()
