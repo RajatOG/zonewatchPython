@@ -2,40 +2,32 @@ import os
 import cv2
 import numpy as np
 import logging
-import torch
 
 logger = logging.getLogger(__name__)
 
 def initialize_model():
     """
-    Initialize and return the YOLOv8 model for object detection.
+    Initialize and return the OpenCV-based HOG+SVM model for person detection.
     
     Returns:
-        torch.nn.Module: The initialized YOLOv8 model
+        HOGDescriptor: The initialized model
     """
     try:
-        # Load YOLOv8 model from torch hub
-        model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
-        
-        # Set model to evaluation mode and move to CPU/GPU as appropriate
-        model.eval()
-        if torch.cuda.is_available():
-            model = model.cuda()
-        else:
-            model = model.cpu()
-            
-        logger.info("YOLOv8 model initialized successfully")
-        return model
+        # Initialize HOG Descriptor with SVM model for people detection
+        hog = cv2.HOGDescriptor()
+        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
+        logger.info("HOG+SVM person detector initialized successfully")
+        return hog
     except Exception as e:
-        logger.error(f"Error initializing YOLOv8 detector: {str(e)}")
+        logger.error(f"Error initializing HOG+SVM detector: {str(e)}")
         raise
 
 def detect_humans(model, frame, conf_threshold=0.25):
     """
-    Detect humans in a frame using the YOLOv8 model.
+    Detect humans in a frame using the HOG+SVM model.
     
     Args:
-        model: The YOLOv8 model
+        model: The HOG detector model
         frame (numpy.ndarray): The image frame to process
         conf_threshold (float): Confidence threshold for detections
         
@@ -43,35 +35,53 @@ def detect_humans(model, frame, conf_threshold=0.25):
         list: List of human detections with bounding boxes and confidence scores
     """
     try:
-        # YOLOv5 expects RGB images, convert from BGR if needed
-        if frame.shape[2] == 3:  # Check if it's a color image
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        else:
-            rgb_frame = frame
-            
-        # Perform inference
-        results = model(rgb_frame)
+        # Resize the frame for better detection and performance
+        height, width = frame.shape[:2]
         
-        # Extract person detections (class 0 in COCO dataset)
-        person_detections = []
-        predictions = results.xyxy[0]  # Predictions in xyxy format
+        # If the frame is too large, resize it (max width of 800px)
+        if width > 800:
+            scale = 800 / width
+            frame = cv2.resize(frame, (int(width * scale), int(height * scale)))
+            height, width = frame.shape[:2]
         
-        for pred in predictions:
-            x1, y1, x2, y2, conf, cls = pred.tolist()
-            class_id = int(cls)
+        # Run HOG detection with optimized parameters
+        # - Smaller winStride helps detect distant or smaller figures
+        # - Larger padding provides more context
+        # - Smaller scale factor performs a more thorough search
+        boxes, weights = model.detectMultiScale(
+            frame, 
+            winStride=(4, 4),
+            padding=(16, 16),
+            scale=1.03  # Smaller scale factor searches more thoroughly
+        )
+        
+        # Process results
+        detections = []
+        
+        for i, (x, y, w, h) in enumerate(boxes):
+            confidence = float(weights[i])
             
-            # Filter for person class (0) and confidence threshold
-            if class_id == 0 and conf >= conf_threshold:
-                # Add detection to results
-                person_detections.append({
+            # Filter by confidence threshold
+            if confidence >= conf_threshold:
+                # Convert to x1, y1, x2, y2 format
+                x1, y1, x2, y2 = x, y, x + w, y + h
+                
+                # If we resized the frame, scale the coordinates back to original size
+                original_width = frame.shape[1] * (width > 800 and 800 / width or 1)
+                if original_width != width:
+                    scale = original_width / width
+                    x1, y1, x2, y2 = int(x1 * scale), int(y1 * scale), int(x2 * scale), int(y2 * scale)
+                
+                # Add to detections - convert NumPy types to native Python types for JSON serialization
+                detections.append({
                     'box': [int(x1), int(y1), int(x2), int(y2)],
-                    'confidence': float(conf)
+                    'confidence': float(confidence)
                 })
         
-        return person_detections
+        return detections
     
     except Exception as e:
-        logger.error(f"Error detecting humans with YOLOv8: {str(e)}")
+        logger.error(f"Error detecting humans with HOG+SVM: {str(e)}")
         return []
 
 def draw_detection_overlay(frame, detections, color=(0, 255, 0)):
