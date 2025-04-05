@@ -2,117 +2,284 @@
 
 /* General styles */
 body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 footer {
-    margin-top: auto;
+  margin-top: auto;
 }
 
 /* Timeline styles */
 .timeline-list {
-    max-height: 300px;
-    overflow-y: auto;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .timeline-item {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
 }
 
 .timeline-item:hover {
-    background-color: var(--bs-dark);
+  background-color: var(--bs-dark);
 }
 
 .timeline-item.active {
-    border-left: 4px solid var(--bs-primary);
+  border-left: 4px solid var(--bs-primary);
 }
 
 /* Zone canvas */
 #zoneCanvas {
-    pointer-events: none;
-    z-index: 10;
+  pointer-events: none;
+  z-index: 10;
 }
 
 #zoneCanvas.editing {
-    pointer-events: auto;
-    cursor: crosshair;
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* Timeline visualization */
+.timeline-visualization {
+  position: relative;
+  height: 40px;
+  background-color: var(--bs-dark);
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.timeline-bar {
+  position: relative;
+  height: 20px;
+  background-color: var(--bs-secondary);
+  border-radius: 4px;
+  margin: 10px 0;
+  cursor: pointer;
+}
+
+.timeline-marker {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 20px;
+  background-color: var(--bs-primary);
+  border: 1px solid var(--bs-light);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timeline-marker:hover {
+  transform: translateX(-50%) scale(1.5);
+  z-index: 5;
+}
+
+.time-scale {
+  position: relative;
+  height: 20px;
+}
+
+.time-marker {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 10px;
+  background-color: var(--bs-light);
+  transform: translateX(-50%);
+}
+
+.time-label {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--bs-light);
+}
+
+.playback-indicator {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 20px;
+  background-color: var(--bs-light);
+  transform: translateX(-50%);
+  z-index: 5;
 }
 
 /* Video container styles */
 .video-container {
-    position: relative;
-    width: 100%;
+  position: relative;
+  width: 100%;
 }
 
 /* Detection frames gallery */
 .detection-frame {
-    position: relative;
-    overflow: hidden;
-    border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .detection-frame img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    transition: transform 0.3s ease;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
 .detection-frame:hover img {
-    transform: scale(1.05);
+  transform: scale(1.05);
 }
 
 .detection-frame .frame-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 8px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px;
 }
 
 /* Custom scrollbar for timeline */
 .timeline-list::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
 
 .timeline-list::-webkit-scrollbar-track {
-    background: var(--bs-dark);
-    border-radius: 4px;
+  background: var(--bs-dark);
+  border-radius: 4px;
 }
 
 .timeline-list::-webkit-scrollbar-thumb {
-    background: var(--bs-secondary);
-    border-radius: 4px;
+  background: var(--bs-secondary);
+  border-radius: 4px;
 }
 
 .timeline-list::-webkit-scrollbar-thumb:hover {
-    background: var(--bs-primary);
+  background: var(--bs-primary);
 }
 
 /* Loading spinner */
 .spinner-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
 }
 
 /* Zone color indicator in list */
 .zone-color-indicator {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    margin-right: 8px;
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+/* Zone drawing button */
+.vjs-zone-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vjs-zone-button .vjs-icon-draw-zone:before {
+  content: "\f0c8"; /* Font Awesome square icon */
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+}
+
+.vjs-zone-button.active {
+  background-color: var(--bs-primary);
+}
+
+/* Zone list styles */
+#zonesList .list-group-item {
+  transition: all 0.2s ease;
+}
+
+#zonesList .list-group-item:hover {
+  background-color: var(--bs-dark);
+}
+
+.delete-zone {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.delete-zone:hover {
+  opacity: 1;
+}
+
+/* Zone required message */
+.zone-required-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 5px;
+  text-align: center;
+  z-index: 5;
+}
+
+.zone-required-message i {
+  font-size: 24px;
+  margin-bottom: 10px;
+  display: block;
+}
+
+/* File input styling */
+#videoInput {
+  cursor: pointer;
+  padding: 10px;
+  border: 2px dashed #6c757d;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+}
+
+#videoInput:hover {
+  border-color: #0d6efd;
+  background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Upload progress styling */
+#uploadProgress {
+  margin-top: 15px;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#uploadProgress .progress-bar {
+  transition: width 0.3s ease;
+}
+
+/* External play/pause buttons */
+#externalPlayBtn,
+#externalPauseBtn {
+  min-width: 120px;
+  transition: all 0.2s ease-in-out;
+}
+
+#externalPlayBtn:hover,
+#externalPauseBtn:hover {
+  transform: scale(1.05);
+}
+
+#externalPlayBtn:active,
+#externalPauseBtn:active {
+  transform: scale(0.95);
 }
