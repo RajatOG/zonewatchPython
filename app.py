@@ -1,5 +1,8 @@
 import os
 import logging
+import base64
+import numpy as np
+import cv2
 from flask import Flask, render_template, request, jsonify, session, send_from_directory
 import uuid
 import time
@@ -122,6 +125,48 @@ def analyze_video():
 def serve_frame(session_id, frame_id):
     results_dir = os.path.join(RESULTS_FOLDER, session_id)
     return send_from_directory(results_dir, f"frame_{frame_id}.jpg")
+
+@app.route('/detect-frame', methods=['POST'])
+def detect_frame():
+    """Process a single video frame for real-time detection."""
+    if not request.json or 'frame_data' not in request.json:
+        return jsonify({'error': 'No frame data provided'}), 400
+    
+    try:
+        # Decode base64 image
+        frame_data = request.json['frame_data'].split(',')[1]
+        frame_bytes = base64.b64decode(frame_data)
+        
+        # Convert to numpy array
+        frame_array = np.frombuffer(frame_bytes, dtype=np.uint8)
+        frame = cv2.imdecode(frame_array, cv2.IMREAD_COLOR)
+        
+        if frame is None:
+            return jsonify({'error': 'Could not decode frame'}), 400
+        
+        # Initialize model if needed
+        from utils.yolo_detector import initialize_model, detect_humans, draw_detection_overlay
+        model = initialize_model()
+        
+        # Detect humans in the frame
+        detections = detect_humans(model, frame)
+        
+        # Draw detections on frame
+        result_frame = draw_detection_overlay(frame, detections)
+        
+        # Convert result back to base64
+        _, buffer = cv2.imencode('.jpg', result_frame)
+        result_base64 = base64.b64encode(buffer).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'result_frame': f"data:image/jpeg;base64,{result_base64}",
+            'detections': detections
+        })
+    
+    except Exception as e:
+        logging.error(f"Error processing frame: {str(e)}")
+        return jsonify({'error': f'Error processing frame: {str(e)}'}), 500
 
 # Handle cleanup when the server starts
 # Using @app.before_first_request is deprecated in Flask 2.x+

@@ -52,8 +52,7 @@ def detect_humans(model, frame, conf_threshold=0.25):
             frame, 
             winStride=(4, 4),
             padding=(16, 16),
-            scale=1.03,  # Smaller scale factor searches more thoroughly
-            finalThreshold=conf_threshold * 1.5
+            scale=1.03  # Smaller scale factor searches more thoroughly
         )
         
         # Process results

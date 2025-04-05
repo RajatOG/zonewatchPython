@@ -6,6 +6,9 @@
 // Global variables
 let sessionId = null;
 let videoInfo = null;
+let realTimeDetectionActive = false;
+let lastCaptureTime = 0;
+const CAPTURE_INTERVAL = 300; // Capture every 300ms
 
 // DOM elements
 const uploadForm = document.getElementById('upload-form');
@@ -24,6 +27,8 @@ const resultsFrames = document.getElementById('resultsFrames');
 
 // Initialize video player
 let videoPlayer = null;
+let detectionCanvas = null;
+let detectionCanvasCtx = null;
 
 // Event handlers for file upload
 uploadForm.addEventListener('submit', function(e) {
@@ -122,14 +127,143 @@ function initializeVideoPlayer(sessionId, filename) {
         }]
     });
     
-    // After video loads, enable analyze button
+    // After video loads, enable analyze button and setup detection canvas
     videoPlayer.on('loadedmetadata', function() {
         // Enable analyze button once video is loaded
         analyzeBtn.disabled = false;
+        
+        // Setup detection canvas
+        setupDetectionCanvas();
+        
+        // Start real-time detection
+        toggleRealTimeDetection(true);
     });
     
     // Add event handler for analyze button
     analyzeBtn.addEventListener('click', analyzeVideo);
+    
+    // Add timeupdate event for real-time detection
+    videoPlayer.on('timeupdate', function() {
+        if (realTimeDetectionActive && videoPlayer.paused() === false) {
+            const currentTime = Date.now();
+            // Limit capture rate to avoid overwhelming the server
+            if (currentTime - lastCaptureTime >= CAPTURE_INTERVAL) {
+                captureAndDetect();
+                lastCaptureTime = currentTime;
+            }
+        }
+    });
+    
+    // Add play event to ensure detection is active
+    videoPlayer.on('play', function() {
+        if (!realTimeDetectionActive) {
+            toggleRealTimeDetection(true);
+        }
+    });
+}
+
+// Setup canvas for displaying real-time detections
+function setupDetectionCanvas() {
+    // Create detection canvas if needed
+    if (!detectionCanvas) {
+        const playerContainer = document.querySelector('.video-js');
+        
+        detectionCanvas = document.createElement('canvas');
+        detectionCanvas.className = 'detection-canvas position-absolute top-0 start-0';
+        detectionCanvas.style.pointerEvents = 'none'; // Make it non-interactive
+        
+        // Append to player container
+        playerContainer.appendChild(detectionCanvas);
+        
+        // Get context
+        detectionCanvasCtx = detectionCanvas.getContext('2d');
+    }
+    
+    // Resize canvas to match video dimensions
+    const videoElement = videoPlayer.tech().el();
+    detectionCanvas.width = videoElement.videoWidth;
+    detectionCanvas.height = videoElement.videoHeight;
+    
+    // Make canvas responsive
+    function updateCanvasSize() {
+        const displayElement = videoPlayer.el().querySelector('.vjs-tech');
+        const boundingRect = displayElement.getBoundingClientRect();
+        
+        detectionCanvas.style.width = boundingRect.width + 'px';
+        detectionCanvas.style.height = boundingRect.height + 'px';
+    }
+    
+    // Call initially and on resize
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+}
+
+// Toggle real-time detection
+function toggleRealTimeDetection(enable) {
+    realTimeDetectionActive = enable;
+    
+    // Clear detection canvas when disabled
+    if (!realTimeDetectionActive && detectionCanvasCtx) {
+        detectionCanvasCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    }
+}
+
+// Capture current video frame and send for detection
+function captureAndDetect() {
+    if (!videoPlayer || !detectionCanvas || !detectionCanvasCtx) return;
+    
+    try {
+        // Get video element
+        const videoElement = videoPlayer.tech().el();
+        
+        // Create offscreen canvas for capturing frame
+        const captureCanvas = document.createElement('canvas');
+        captureCanvas.width = videoElement.videoWidth;
+        captureCanvas.height = videoElement.videoHeight;
+        
+        // Draw current video frame to canvas
+        const ctx = captureCanvas.getContext('2d');
+        ctx.drawImage(videoElement, 0, 0, captureCanvas.width, captureCanvas.height);
+        
+        // Convert to base64
+        const frameData = captureCanvas.toDataURL('image/jpeg', 0.7); // Use lower quality for better performance
+        
+        // Send frame for processing
+        fetch('/detect-frame', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ frame_data: frameData })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayDetectionOverlay(data.result_frame, data.detections);
+            }
+        })
+        .catch(error => {
+            console.error('Error sending frame for detection:', error);
+        });
+    } catch (error) {
+        console.error('Error capturing video frame:', error);
+    }
+}
+
+// Display detection overlay on canvas
+function displayDetectionOverlay(resultImageSrc, detections) {
+    if (!detectionCanvasCtx || !detectionCanvas) return;
+    
+    // Clear previous detections
+    detectionCanvasCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+    
+    // Load result image
+    const img = new Image();
+    img.onload = function() {
+        // Draw detection image
+        detectionCanvasCtx.drawImage(img, 0, 0, detectionCanvas.width, detectionCanvas.height);
+    };
+    img.src = resultImageSrc;
 }
 
 // Function to analyze the video for human movement
