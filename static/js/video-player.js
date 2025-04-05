@@ -8,6 +8,7 @@ let sessionId = null;
 let videoInfo = null;
 let realTimeDetectionActive = false;
 let lastCaptureTime = 0;
+let detectionTimestamps = []; // Array to store detection timestamps
 const CAPTURE_INTERVAL = 33; // Capture every 33ms (30 frames per second)
 
 // DOM elements
@@ -16,7 +17,6 @@ const videoInput = document.getElementById('videoInput');
 const uploadBtn = document.getElementById('uploadBtn');
 const uploadProgress = document.getElementById('uploadProgress');
 const videoContainer = document.getElementById('videoContainer');
-const analyzeBtn = document.getElementById('analyzeBtn');
 const analysisProgress = document.getElementById('analysisProgress');
 const resultsContainer = document.getElementById('resultsContainer');
 const timelineContainer = document.getElementById('timelineContainer');
@@ -100,6 +100,9 @@ function initializeVideoPlayer(sessionId, filename) {
         videoPlayer.dispose();
     }
     
+    // Reset detection timestamps array
+    detectionTimestamps = [];
+    
     const videoUrl = `/video/${sessionId}/${filename}`;
     
     // Determine the video type from the filename
@@ -129,18 +132,12 @@ function initializeVideoPlayer(sessionId, filename) {
     
     // After video loads, enable analyze button and setup detection canvas
     videoPlayer.on('loadedmetadata', function() {
-        // Enable analyze button once video is loaded
-        analyzeBtn.disabled = false;
-        
         // Setup detection canvas
         setupDetectionCanvas();
         
         // Start real-time detection
         toggleRealTimeDetection(true);
     });
-    
-    // Add event handler for analyze button
-    analyzeBtn.addEventListener('click', analyzeVideo);
     
     // Add timeupdate event for real-time detection
     videoPlayer.on('timeupdate', function() {
@@ -159,6 +156,11 @@ function initializeVideoPlayer(sessionId, filename) {
         if (!realTimeDetectionActive) {
             toggleRealTimeDetection(true);
         }
+    });
+    
+    // Add ended event to show the timeline
+    videoPlayer.on('ended', function() {
+        showDetectionTimeline();
     });
 }
 
@@ -240,6 +242,26 @@ function captureAndDetect() {
         .then(data => {
             if (data.success) {
                 displayDetectionOverlay(data.result_frame, data.detections);
+                
+                // Store detection timestamps if humans are detected
+                if (data.detections && data.detections.length > 0) {
+                    const currentTime = videoPlayer.currentTime();
+                    // Check if this timestamp is already recorded (within 1 second)
+                    const isNewDetection = !detectionTimestamps.some(detection => 
+                        Math.abs(detection.timestamp - currentTime) < 1
+                    );
+                    
+                    if (isNewDetection) {
+                        data.detections.forEach(detection => {
+                            detectionTimestamps.push({
+                                timestamp: currentTime,
+                                confidence: detection.confidence,
+                                frame_id: `realtime_${Date.now()}`,
+                                box: detection.box
+                            });
+                        });
+                    }
+                }
             }
         })
         .catch(error => {
@@ -257,77 +279,77 @@ function displayDetectionOverlay(resultImageSrc, detections) {
     // Clear previous detections
     detectionCanvasCtx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
     
-    // Load result image
-    const img = new Image();
-    img.onload = function() {
-        // Draw detection image
-        detectionCanvasCtx.drawImage(img, 0, 0, detectionCanvas.width, detectionCanvas.height);
-    };
-    img.src = resultImageSrc;
+    // Draw detection boxes directly
+    if (detections && detections.length > 0) {
+        detectionCanvasCtx.strokeStyle = 'green';
+        detectionCanvasCtx.lineWidth = 2;
+        detectionCanvasCtx.font = '12px Arial';
+        detectionCanvasCtx.fillStyle = 'green';
+        
+        detections.forEach(detection => {
+            const [x1, y1, x2, y2] = detection.box;
+            
+            // Scale coordinates to canvas size
+            const canvasWidth = detectionCanvas.width;
+            const canvasHeight = detectionCanvas.height;
+            
+            // Calculate scaling factors
+            const scaleX = canvasWidth / videoPlayer.tech().el().videoWidth;
+            const scaleY = canvasHeight / videoPlayer.tech().el().videoHeight;
+            
+            // Apply scaling
+            const scaledX1 = x1 * scaleX;
+            const scaledY1 = y1 * scaleY;
+            const scaledWidth = (x2 - x1) * scaleX;
+            const scaledHeight = (y2 - y1) * scaleY;
+            
+            // Draw rectangle
+            detectionCanvasCtx.strokeRect(scaledX1, scaledY1, scaledWidth, scaledHeight);
+            
+            // Draw label with confidence
+            const confidenceText = `Person: ${Math.round(detection.confidence * 100)}%`;
+            detectionCanvasCtx.fillText(confidenceText, scaledX1, scaledY1 - 5);
+        });
+    }
 }
 
-// Function to analyze the video for human movement
-function analyzeVideo() {
-    // Disable analyze button and show progress
-    analyzeBtn.disabled = true;
-    analysisProgress.classList.remove('d-none');
-    
-    // Send request to the server for analysis
-    fetch('/analyze', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ session_id: sessionId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Process results
-            displayResults(data.results);
-        } else {
-            alert('Analysis failed: ' + data.error);
-        }
-        
-        // Hide progress and re-enable analyze button
-        analysisProgress.classList.add('d-none');
-        analyzeBtn.disabled = false;
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred during analysis. Please try again.');
-        
-        // Hide progress and re-enable analyze button
-        analysisProgress.classList.add('d-none');
-        analyzeBtn.disabled = false;
-    });
-}
-
-// Function to display the analysis results
-function displayResults(results) {
-    // Show timeline and results containers
+// Function to show the detection timeline after video ends
+function showDetectionTimeline() {
+    // Show timeline container
     timelineEmpty.classList.add('d-none');
     timelineContainer.classList.remove('d-none');
-    resultsContainer.classList.remove('d-none');
-    
-    // Display result statistics
-    const totalDetections = results.detections.length;
-    resultsStats.innerHTML = `
-        <h5><i class="fas fa-chart-bar me-2"></i>Detection Statistics</h5>
-        <p>Total Movement Detections: <strong>${totalDetections}</strong></p>
-        <p>Video Duration: <strong>${formatTime(videoInfo.duration)}</strong></p>
-        <p>Frames Analyzed: <strong>${results.frames_analyzed}</strong></p>
-    `;
-    
-    // Clear previous results
-    timelineList.innerHTML = '';
-    resultsFrames.innerHTML = '';
     
     // Sort detections by timestamp
-    const sortedDetections = results.detections.sort((a, b) => a.timestamp - b.timestamp);
+    const sortedDetections = [...detectionTimestamps].sort((a, b) => a.timestamp - b.timestamp);
     
-    // Populate timeline
-    sortedDetections.forEach((detection, index) => {
+    // Clear previous timeline items
+    timelineList.innerHTML = '';
+    
+    // Check if there are any detections
+    if (sortedDetections.length === 0) {
+        timelineList.innerHTML = `
+            <div class="list-group-item text-center py-3">
+                <i class="fas fa-exclamation-circle text-warning fs-4 mb-2"></i>
+                <p class="mb-0">No human movement detected in the video.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Process detections to remove duplicates within small time windows (1 second)
+    const uniqueDetections = [];
+    let lastTimestamp = -2; // Start with a value that will always be different
+    
+    for (const detection of sortedDetections) {
+        // If this detection is more than 1 second after the last one we added
+        if (detection.timestamp - lastTimestamp > 1) {
+            uniqueDetections.push(detection);
+            lastTimestamp = detection.timestamp;
+        }
+    }
+    
+    // Create timeline items for each unique detection
+    uniqueDetections.forEach((detection, index) => {
         const formattedTime = formatTime(detection.timestamp);
         const listItem = document.createElement('a');
         listItem.href = '#';
@@ -353,71 +375,13 @@ function displayResults(results) {
                 item.classList.remove('active');
             });
             this.classList.add('active');
-            
-            // Scroll to the corresponding detection frame
-            const frameElement = document.querySelector(`.detection-frame[data-frame-id="${detection.frame_id}"]`);
-            if (frameElement) {
-                frameElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
         });
         
         timelineList.appendChild(listItem);
-        
-        // Add detection frame to gallery
-        const frameElement = document.createElement('div');
-        frameElement.className = 'col detection-frame';
-        frameElement.dataset.frameId = detection.frame_id;
-        frameElement.dataset.timestamp = detection.timestamp;
-        
-        frameElement.innerHTML = `
-            <div class="card h-100">
-                <img src="/frame/${sessionId}/${detection.frame_id}" class="card-img-top" alt="Detection Frame">
-                <div class="card-body">
-                    <h6 class="card-title">Detection at ${formattedTime}</h6>
-                    <p class="card-text">Confidence: ${Math.round(detection.confidence * 100)}%</p>
-                </div>
-                <div class="card-footer">
-                    <button class="btn btn-sm btn-primary view-detection-btn">View in Video</button>
-                </div>
-            </div>
-        `;
-        
-        // Add click event to view detection button
-        frameElement.querySelector('.view-detection-btn').addEventListener('click', function() {
-            videoPlayer.currentTime(detection.timestamp);
-            
-            // Highlight the corresponding timeline item
-            document.querySelectorAll('.timeline-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            document.querySelector(`.timeline-item[data-frame-id="${detection.frame_id}"]`).classList.add('active');
-        });
-        
-        resultsFrames.appendChild(frameElement);
     });
     
-    // If no detections found
-    if (sortedDetections.length === 0) {
-        timelineList.innerHTML = `
-            <div class="list-group-item text-center py-3">
-                <i class="fas fa-exclamation-circle text-warning fs-4 mb-2"></i>
-                <p class="mb-0">No human movement detected in the video.</p>
-            </div>
-        `;
-        
-        resultsFrames.innerHTML = `
-            <div class="col-12 text-center py-4">
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    No human movement detected in this video.
-                </div>
-                <p>Try using a different video.</p>
-            </div>
-        `;
-    }
-    
     // Create detection timeline visualization
-    createTimelineVisualization(sortedDetections);
+    createTimelineVisualization(uniqueDetections);
 }
 
 // Helper function to format seconds to MM:SS or HH:MM:SS
