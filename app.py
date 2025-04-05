@@ -49,6 +49,10 @@ def is_detection_in_zone(detection_box, zone):
 def index():
     return render_template('index.html')
 
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
 @app.route('/upload', methods=['POST'])
 def upload_video():
     if 'video' not in request.files:
