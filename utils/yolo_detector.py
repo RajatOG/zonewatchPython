@@ -2,7 +2,7 @@ import cv2
 from ultralytics import YOLO
 
 # Load YOLOv8 model once
-_model = YOLO("yolov8n.pt")  # Or use a path to a custom trained model if needed
+_model = YOLO("yolov8s.pt")  # Or use a path to a custom trained model if needed
 
 
 def initialize_model():
